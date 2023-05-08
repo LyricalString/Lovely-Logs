@@ -10,6 +10,18 @@ To install Lovely Logs, simply run the following command:
 npm install lovely-logs
 ```
 
+or
+
+```
+yarn add lovely-logs
+```
+
+or
+
+```
+pnpm add lovely-logs
+```
+
 ## 🚀 Usage
 
 Start by importing the `Logger` class from the `lovely-logs` package:
