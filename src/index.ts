@@ -1,17 +1,53 @@
 /**
+ * Creates a new Logger instance.
+ * @param options Options to configure the Logger instance.
+ * @returns A new Logger instance.
+ */
+export function createLogger(options: {
+  format: 'web' | 'console';
+  timestampEnabled?: boolean;
+}): Logger {
+  return new Logger(options);
+}
+
+/**
  * Nice log with pretty colors.
  */
 export class Logger {
-  private static timer = typeof window !== 'undefined' ? window.performance || Date : Date;
+  private static format: 'web' | 'console';
+  private static timeStampEnabled: boolean;
+
+  constructor ({
+    format,
+    timestampEnabled = true,
+  }: {
+    format: 'web' | 'console'
+    timestampEnabled?: boolean
+  }) {
+    Logger.format = format;
+    Logger.timeStampEnabled = timestampEnabled;
+  }
+  private static timer: number = Date.now()
+
 
   /**
    * Text of the modes like 'INFO', 'WARN', etc.
    */
   public static modeText = {
-    info: 'INFO',
-    warn: 'WARN',
-    error: 'ERROR',
-    success: 'OK'
+    "web": {
+      info: 'INFO',
+      warn: 'WARN',
+      error: 'ERROR',
+      success: 'OK'
+    },
+    "console": {
+      info: '\x1b[36mℹ\x1b[0m', // cyan 'i'
+      warn: '\x1b[33m⚠\x1b[0m', // yellow '!'
+      error: '\x1b[31m✖\x1b[0m', // red 'x'
+      success: '\x1b[32m✔\x1b[0m', // green '√'
+      time: '\x1b[33m⏱\x1b[0m', // yellow '⏱'
+      title: '\x1b[1m' // bold
+    }
   };
 
   /**
@@ -27,66 +63,89 @@ export class Logger {
   };
 
   /**
-   * Time stamps option.
-   */
-  public static timeStampEnabled = true;
-
-  /**
    * Returns a time in milliseconds.
    * Either in high resolution (if supported, nanoseconds) from app start time or milliseconds since 1970.
    */
-  public static getTime(): number {
-    return parseFloat((this.timer.now() / 1000).toFixed(3));
+  public static getTime(): string {
+    const seconds = (Date.now() - Logger.timer) / 1000;
+    return seconds.toFixed(3);
   }
 
   /**
    * Prints a more custom log. This is not the recommended way to log. Use the other methods like .info(...).
    * @param modeText Mode text like 'INFO'.
-   * @param style CSS stlyes like 'color: blue'.
    * @param printTime Prints the time stamp.
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
-  public static custom(modeText: string, style: string, printTime: boolean, ...msgs: any[]): void {
-    console.log(`%c${modeText}%c${printTime ? ` [${this.getTime()}]` : ''}`, style, this.logStyle.time, ...msgs);
-  }
-
-  /**
-   * Prints text with large font.
-   * @param title Some text.
-   */
-  public static title(title: string): void {
-    this.custom(title, this.logStyle.title, false);
+  custom(modeText: string, style: string, printTime: boolean, ...msgs: any[]): void {
+    switch (Logger.format) {
+      case 'web':
+        console.log(`%c${modeText}%c${printTime ? ` [${Logger.getTime()}]` : ''}`, style, Logger.logStyle.time, ...msgs);
+        break;
+      case 'console':
+        if (style) throw new Error('Style is not supported in console mode.');
+        console.log(`${printTime ? `\x1b[36m[${Logger.getTime()}]\x1b[0m ` : ''}${modeText}`, ...msgs);
+        break;
+    }
   }
 
   /**
    * Prints an info message. Like console.log().
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
-  public static info(...msgs: any[]): void {
-    this.custom(this.modeText.info, this.logStyle.info, this.timeStampEnabled, ...msgs);
+  info(...msgs: any[]): void {
+    switch (Logger.format) {
+      case 'web':
+        this.custom(Logger.modeText["web"].info, Logger.logStyle.info, Logger.timeStampEnabled, ...msgs);
+        break;
+      case 'console':
+        this.custom(Logger.modeText["console"].info, '', Logger.timeStampEnabled, ...msgs);
+        break;
+    }
   }
 
   /**
    * Prints a warning message. Like console.warn().
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
-  public static warn(...msgs: any[]): void {
-    this.custom(this.modeText.warn, this.logStyle.warning, this.timeStampEnabled, ...msgs);
+  warn(...msgs: any[]): void {
+    switch (Logger.format) {
+      case 'web':
+        this.custom(Logger.modeText["web"].warn, Logger.logStyle.warning, Logger.timeStampEnabled, ...msgs);
+        break;
+      case 'console':
+        this.custom(Logger.modeText["console"].warn, '', Logger.timeStampEnabled, ...msgs);
+        break;
+    }
   }
 
   /**
    * Prints an error message. Like console.error().
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
-  public static error(...msgs: any[]): void {
-    this.custom(this.modeText.error, this.logStyle.danger, this.timeStampEnabled, ...msgs);
+  error(...msgs: any[]): void {
+    switch (Logger.format) {
+      case 'web':
+        this.custom(Logger.modeText["web"].error, Logger.logStyle.danger, Logger.timeStampEnabled, ...msgs);
+        break;
+      case 'console':
+        this.custom(Logger.modeText["console"].error, '', Logger.timeStampEnabled, ...msgs);
+        break;
+    }
   }
 
   /**
    * Prints a successful message. A green message for OK or DONE.
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
-  public static success(...msgs: any[]): void {
-    this.custom(this.modeText.success, this.logStyle.success, this.timeStampEnabled, ...msgs);
+  success(...msgs: any[]): void {
+    switch (Logger.format) {
+      case 'web':
+        this.custom(Logger.modeText['web'].success, Logger.logStyle.success, Logger.timeStampEnabled, ...msgs);
+        break;
+      case 'console':
+        this.custom(Logger.modeText["console"].success, '', Logger.timeStampEnabled, ...msgs);
+        break;
+    }
   }
 }
