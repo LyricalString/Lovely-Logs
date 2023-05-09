@@ -33,7 +33,7 @@ export class Logger {
   /**
    * Text of the modes like 'INFO', 'WARN', etc.
    */
-  public static modeText = {
+  modeText = {
     "web": {
       info: 'INFO',
       warn: 'WARN',
@@ -53,7 +53,7 @@ export class Logger {
   /**
    * CSS styles. e.g. 'color: blue'
    */
-  public static logStyle = {
+  logStyle = {
     info: 'background: #3880ff; color: #ffffff; border-radius: 3px; padding: 0 5px; font-weight: bold;',
     success: 'background: #10dc60; color: #ffffff; border-radius: 3px; padding: 0 5px',
     warning: 'background: #ffce00; color: #ffffff; border-radius: 3px; padding: 0 5px',
@@ -80,7 +80,7 @@ export class Logger {
   custom(modeText: string, style: string, printTime: boolean, ...msgs: any[]): void {
     switch (Logger.format) {
       case 'web':
-        console.log(`%c${modeText}%c${printTime ? ` [${Logger.getTime()}]` : ''}`, style, Logger.logStyle.time, ...msgs);
+        console.log(`%c${modeText}%c${printTime ? ` [${Logger.getTime()}]` : ''}`, style, this.logStyle.time, ...msgs);
         break;
       case 'console':
         if (style) throw new Error('Style is not supported in console mode.');
@@ -96,10 +96,10 @@ export class Logger {
   info(...msgs: any[]): void {
     switch (Logger.format) {
       case 'web':
-        this.custom(Logger.modeText["web"].info, Logger.logStyle.info, Logger.timeStampEnabled, ...msgs);
+        this.custom(this.modeText["web"].info, this.logStyle.info, Logger.timeStampEnabled, ...msgs);
         break;
       case 'console':
-        this.custom(Logger.modeText["console"].info, '', Logger.timeStampEnabled, ...msgs);
+        this.custom(this.modeText["console"].info, '', Logger.timeStampEnabled, ...msgs);
         break;
     }
   }
@@ -111,10 +111,10 @@ export class Logger {
   warn(...msgs: any[]): void {
     switch (Logger.format) {
       case 'web':
-        this.custom(Logger.modeText["web"].warn, Logger.logStyle.warning, Logger.timeStampEnabled, ...msgs);
+        this.custom(this.modeText["web"].warn, this.logStyle.warning, Logger.timeStampEnabled, ...msgs);
         break;
       case 'console':
-        this.custom(Logger.modeText["console"].warn, '', Logger.timeStampEnabled, ...msgs);
+        this.custom(this.modeText["console"].warn, '', Logger.timeStampEnabled, ...msgs);
         break;
     }
   }
@@ -126,10 +126,10 @@ export class Logger {
   error(...msgs: any[]): void {
     switch (Logger.format) {
       case 'web':
-        this.custom(Logger.modeText["web"].error, Logger.logStyle.danger, Logger.timeStampEnabled, ...msgs);
+        this.custom(this.modeText["web"].error, this.logStyle.danger, Logger.timeStampEnabled, ...msgs);
         break;
       case 'console':
-        this.custom(Logger.modeText["console"].error, '', Logger.timeStampEnabled, ...msgs);
+        this.custom(this.modeText["console"].error, '', Logger.timeStampEnabled, ...msgs);
         break;
     }
   }
@@ -141,10 +141,10 @@ export class Logger {
   success(...msgs: any[]): void {
     switch (Logger.format) {
       case 'web':
-        this.custom(Logger.modeText['web'].success, Logger.logStyle.success, Logger.timeStampEnabled, ...msgs);
+        this.custom(this.modeText['web'].success, this.logStyle.success, Logger.timeStampEnabled, ...msgs);
         break;
       case 'console':
-        this.custom(Logger.modeText["console"].success, '', Logger.timeStampEnabled, ...msgs);
+        this.custom(this.modeText["console"].success, '', Logger.timeStampEnabled, ...msgs);
         break;
     }
   }
