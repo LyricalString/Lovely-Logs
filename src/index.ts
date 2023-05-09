@@ -4,7 +4,7 @@
  * @returns A new Logger instance.
  */
 export function createLogger(options: {
-  format: 'web' | 'console';
+  platform: 'web' | 'console';
   timestampEnabled?: boolean;
 }): Logger {
   return new Logger(options);
@@ -14,17 +14,17 @@ export function createLogger(options: {
  * Nice log with pretty colors.
  */
 export class Logger {
-  private static format: 'web' | 'console';
+  private static platform: 'web' | 'console';
   private static timeStampEnabled: boolean;
 
   constructor ({
-    format,
+    platform,
     timestampEnabled = true,
   }: {
-    format: 'web' | 'console'
+    platform: 'web' | 'console'
     timestampEnabled?: boolean
   }) {
-    Logger.format = format;
+    Logger.platform = platform;
     Logger.timeStampEnabled = timestampEnabled;
   }
   private static timer: number = Date.now()
@@ -78,7 +78,7 @@ export class Logger {
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
   custom(modeText: string, style: string, printTime: boolean, ...msgs: any[]): void {
-    switch (Logger.format) {
+    switch (Logger.platform) {
       case 'web':
         console.log(`%c${modeText}%c${printTime ? ` [${Logger.getTime()}]` : ''}`, style, this.logStyle.time, ...msgs);
         break;
@@ -94,7 +94,7 @@ export class Logger {
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
   info(...msgs: any[]): void {
-    switch (Logger.format) {
+    switch (Logger.platform) {
       case 'web':
         this.custom(this.modeText["web"].info, this.logStyle.info, Logger.timeStampEnabled, ...msgs);
         break;
@@ -109,7 +109,7 @@ export class Logger {
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
   warn(...msgs: any[]): void {
-    switch (Logger.format) {
+    switch (Logger.platform) {
       case 'web':
         this.custom(this.modeText["web"].warn, this.logStyle.warning, Logger.timeStampEnabled, ...msgs);
         break;
@@ -124,7 +124,7 @@ export class Logger {
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
   error(...msgs: any[]): void {
-    switch (Logger.format) {
+    switch (Logger.platform) {
       case 'web':
         this.custom(this.modeText["web"].error, this.logStyle.danger, Logger.timeStampEnabled, ...msgs);
         break;
@@ -139,7 +139,7 @@ export class Logger {
    * @param msgs One or more messages. (same you pass in console.log(...))
    */
   success(...msgs: any[]): void {
-    switch (Logger.format) {
+    switch (Logger.platform) {
       case 'web':
         this.custom(this.modeText['web'].success, this.logStyle.success, Logger.timeStampEnabled, ...msgs);
         break;

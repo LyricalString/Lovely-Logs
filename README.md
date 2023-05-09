@@ -34,7 +34,7 @@ Create a new logger instance with your desired configuration:
 
 ```typescript
 const logger = createLogger({
-  format: "console",
+  platform: "console",
   timestampEnabled: true,
 })
 ```
