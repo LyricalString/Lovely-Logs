@@ -34,6 +34,8 @@ pnpm add lovely-logs
 
 Import the `logger` class from the `lovely-logs` package:
 
+> ⚠️ **By default, the 'web' platform is used.** If you want to use it on a Terminal, please use 'console' platform. See [Advanced Usage](#-advanced-usage) for more information.
+
 ```typescript
 import { logger } from "lovely-logs"
 
@@ -64,6 +66,8 @@ createLogger({
   // more options coming soon
 })
 ```
+
+You can choose between the 'web' and 'console' platforms by setting the platform option to the desired value. By default, the 'web' platform is used.
 
 Now you can use all around your code the available logging methods to print messages to the console:
 
