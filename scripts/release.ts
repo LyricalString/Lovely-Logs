@@ -49,20 +49,30 @@ const updateVersion = async () => {
     'Enter version type (patch/minor/major) or specific version: ',
   );
 
-  if (['patch', 'minor', 'major'].includes(versionType)) {
-    exec(`npm version ${versionType} --no-git-tag-version`);
-  } else {
-    exec(`npm version ${versionType} --no-git-tag-version`);
-  }
-
+  // Format and check code first
   log.step('Formatting code...');
   exec('bunx @biomejs/biome format --write .');
   exec('bunx @biomejs/biome check --apply .');
 
+  // Stage formatted files
   exec('git add .');
-  exec(`git commit -m "chore: release version ${packageJson.version}"`);
 
-  log.success('Version updated and changes committed');
+  // Now update version
+  if (['patch', 'minor', 'major'].includes(versionType)) {
+    exec(`npm --no-git-tag-version version ${versionType}`);
+  } else {
+    exec(`npm --no-git-tag-version version ${versionType}`);
+  }
+
+  // Get new version
+  const newPackageJson = JSON.parse(readFileSync('package.json', 'utf-8'));
+  const newVersion = newPackageJson.version;
+
+  // Stage package.json and create version commit
+  exec('git add package.json');
+  exec(`git commit -m "chore: release version ${newVersion}"`);
+
+  log.success(`Version updated to ${newVersion}`);
 };
 
 const runTests = () => {
@@ -107,13 +117,19 @@ const publish = async () => {
     'Enter publish tag (latest/beta/alpha) or press enter for latest: ',
   );
 
-  if (publishType && publishType !== 'latest') {
-    exec(`bun publish --tag ${publishType}`);
-  } else {
-    exec('bun publish');
+  try {
+    if (publishType && publishType !== 'latest') {
+      exec(`npm publish --tag ${publishType}`);
+    } else {
+      exec('npm publish');
+    }
+    log.success('Package published');
+  } catch (error) {
+    log.warn(
+      'Failed to publish package. You might need to login with: npm login',
+    );
+    throw error;
   }
-
-  log.success('Package published');
 };
 
 const createGitTag = () => {
