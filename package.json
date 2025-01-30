@@ -1,47 +1,48 @@
 {
-	"name": "lovely-logs",
-	"version": "1.2.2",
-	"description": "Lovely console logs for website development on NodeJS. Supports colors, timestamps, and more.",
-	"main": "build/index.js",
-	"scripts": {
-		"test": "jest --config jestconfig.json",
-		"build": "tsc",
-		"build:watch": "tsc -w",
-		"start": "node build/index.js",
-		"start:watch": "nodemon build/index.js",
-		"prepare": "bun run build",
-		"release": "bun scripts/release.ts",
-		"version": "bun run format && git add -A src",
-		"postversion": "git push && git push --tags"
-	},
-	"bin": {
-		"lovely-logs-release": "./build/scripts/release.js"
-	},
-	"keywords": [
-		"fancy logs",
-		"console log",
-		"pretty console logs",
-		"pretty logs",
-		"fancy console logs",
-		"fancy logger",
-		"lovely logs",
-		"lovely logger",
-		"lovely console logs"
-	],
-	"author": "LyricalString",
-	"license": "MIT",
-	"files": ["build/**/*"],
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/LyricalString/Lovely-Logs.git"
-	},
-	"homepage": "https://github.com/LyricalString/Lovely-Logs",
-	"devDependencies": {
-		"@types/jest": "^29.5.1",
-		"@types/node": "^22.12.0",
-		"jest": "^29.5.0",
-		"ts-jest": "^29.1.0",
-		"typescript": "^5.0.4",
-		"prettier": "^3.2.5"
-	}
+  "name": "lovely-logs",
+  "version": "1.2.2",
+  "description": "Lovely console logs for website development on NodeJS. Supports colors, timestamps, and more.",
+  "main": "build/index.js",
+  "scripts": {
+    "test": "jest --config jestconfig.json",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "start": "node build/index.js",
+    "start:watch": "nodemon build/index.js",
+    "prepare": "bun run build",
+    "release": "bun scripts/release.ts",
+    "format": "bunx @biomejs/biome format --write .",
+    "lint": "bunx @biomejs/biome lint .",
+    "check": "bunx @biomejs/biome check --apply ."
+  },
+  "bin": {
+    "lovely-logs-release": "./build/scripts/release.js"
+  },
+  "keywords": [
+    "fancy logs",
+    "console log",
+    "pretty console logs",
+    "pretty logs",
+    "fancy console logs",
+    "fancy logger",
+    "lovely logs",
+    "lovely logger",
+    "lovely console logs"
+  ],
+  "author": "LyricalString",
+  "license": "MIT",
+  "files": ["build/**/*"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LyricalString/Lovely-Logs.git"
+  },
+  "homepage": "https://github.com/LyricalString/Lovely-Logs",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/jest": "^29.5.1",
+    "@types/node": "^22.12.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.4"
+  }
 }
