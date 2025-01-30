@@ -3,17 +3,16 @@
   "version": "2.0.0",
   "description": "Lovely console logs for website development on NodeJS. Supports colors, timestamps, and more.",
   "main": "build/index.js",
+  "type": "module",
   "scripts": {
-    "test": "jest --config jestconfig.json",
-    "build": "tsc",
-    "build:watch": "tsc -w",
-    "start": "node build/index.js",
-    "start:watch": "nodemon build/index.js",
-    "prepare": "bun run build",
-    "release": "bun scripts/release.ts",
+    "build": "rm -rf build && bun build ./src/index.ts --outdir=build --target=node",
+    "build:watch": "bun build ./src/index.ts --outdir=build --target=node --watch",
+    "test": "bun test",
     "format": "bunx @biomejs/biome format --write .",
     "lint": "bunx @biomejs/biome lint .",
-    "check": "bunx @biomejs/biome check --apply ."
+    "check": "bunx @biomejs/biome check --apply .",
+    "release": "bun scripts/release.ts",
+    "prepare": "bun run build"
   },
   "bin": {
     "lovely-logs-release": "./build/scripts/release.js"
