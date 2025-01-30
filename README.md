@@ -1,124 +1,144 @@
 # 🌈 Lovely Logs
 
-Lovely Logs is a lightweight, customizable logging library for Node.js and browser environments that enhances your console logs with beautiful colors and styles. With Lovely Logs, you can quickly and easily differentiate between different types of logs, making it easier to identify and debug issues in your application.
+A modern, type-safe logging library that automatically adapts to your environment - whether you're in Node.js, the browser, or AWS Lambda. With beautiful colors, timestamps, and smart platform detection.
 
-&nbsp;
+## ✨ Features
 
-<img src="./assets/console_example.png?raw=true" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="./assets/web_example.png?" width="150" />
-
-&nbsp;
+- 🎨 Beautiful, colorful logs with customizable styles
+- 🔄 Automatic platform detection (Browser, Node.js, AWS Lambda)
+- ⚡ Zero dependencies
+- 📝 Full TypeScript support
+- ⏱️ Built-in timestamps
+- 🎯 Smart object formatting
+- 🔒 Type-safe API
 
 ## 📦 Installation
 
-To install Lovely Logs, simply run the following command:
-
 ```bash
+# Using npm
 npm install lovely-logs
-```
 
-or
-
-```bash
+# Using yarn
 yarn add lovely-logs
-```
 
-or
-
-```bash
+# Using pnpm
 pnpm add lovely-logs
+
+# Using bun
+bun add lovely-logs
 ```
 
-&nbsp;
-
-## 🚀 Simple Usage
-
-Import the `logger` class from the `lovely-logs` package:
-
-> ⚠️ **By default, the 'web' platform is used.** If you want to use it on a Terminal, please use 'console' platform. See [Advanced Usage](#-advanced-usage) for more information.
+## 🚀 Quick Start
 
 ```typescript
-import { logger } from "lovely-logs"
+import { logger } from "lovely-logs";
 
-// Now you can use the available logging methods to print messages to the console:
+// Start logging right away - platform is auto-detected!
+logger.info("Hello World!");
+logger.warn("This is a warning");
+logger.error("This is an error");
+logger.success("Operation completed!");
 
-Logger.info("This is an info message")
-Logger.warn("This is a warning message")
-Logger.error("This is an error message")
-Logger.success("This is a success message")
+// Log objects with automatic formatting
+logger.info({ user: "john", action: "login", timestamp: new Date() });
+
+// Multiple arguments work too
+logger.info("User", { id: 123 }, "logged in", true);
 ```
 
-&nbsp;
+## 🎨 Custom Configuration
+
+```typescript
+import { createLogger } from "lovely-logs";
+
+// Create a custom logger instance
+const logger = createLogger({
+  // Optional: Override platform auto-detection
+  platform: "web", // "web" | "console" | "lambda"
+  
+  // Optional: Enable/disable timestamps (enabled by default)
+  timestampEnabled: true,
+  
+  // Optional: Custom styles
+  customStyles: {
+    web: {
+      info: "background: #4CAF50; color: white; padding: 2px 5px; border-radius: 3px;",
+      // Customize other levels: warn, error, success
+    }
+  }
+});
+```
+
+## 🎯 Platform-Specific Features
+
+### 🌐 Browser
+- Beautiful CSS-styled logs
+- Collapsible object formatting
+- Chrome DevTools friendly
+
+### 💻 Console (Node.js)
+- Colorful terminal output with Unicode symbols
+- Clean timestamp formatting
+- Perfect for CLI applications
+
+### ☁️ AWS Lambda
+- Lambda-optimized output format
+- Automatic detection in Lambda environment
+- Structured logging friendly
 
 ## 🔍 Advanced Usage
 
-Start by importing the `createLogger` class from the `lovely-logs` package:
+### Custom Styling
 
 ```typescript
-import { createLogger } from "lovely-logs"
+const logger = createLogger({
+  customStyles: {
+    web: {
+      info: "background: #your-color; color: #text-color;",
+      warn: "background: #warn-color; color: #text-color;",
+      error: "background: #error-color; color: #text-color;",
+      success: "background: #success-color; color: #text-color;",
+    },
+    console: {
+      // Custom terminal colors and symbols
+      info: "\x1b[36m●\x1b[0m",
+      // ... customize other levels
+    }
+  }
+});
 ```
 
-Call createLogger function with your desired configuration:
+### Singleton Pattern
+
+The logger uses a singleton pattern, ensuring consistent logging across your application:
 
 ```typescript
-createLogger({
-  platform: "console",
-  timestampEnabled: true,
-  // more options coming soon
-})
+// These both reference the same logger instance
+import { logger } from "lovely-logs";
+import { createLogger } from "lovely-logs";
+
+const customLogger = createLogger(); // Returns existing instance if already created
 ```
 
-You can choose between the 'web' and 'console' platforms by setting the platform option to the desired value. By default, the 'web' platform is used.
-
-Now you can use all around your code the available logging methods to print messages to the console:
+### Reset for Testing
 
 ```typescript
-import { Logger } from "lovely-logs"
+import { Logger } from "lovely-logs";
 
-// These are configured from the previous createLogger function
-Logger.info("This is an info message")
-Logger.warn("This is a warning message")
-Logger.error("This is an error message")
-Logger.success("This is a success message")
+// Reset the logger (useful in tests)
+Logger.resetInstance();
 ```
-
-&nbsp;
-
-## 🖌️ Configuration
-
-To use custom log styles, you can call the `custom` method:
-
-```typescript
-Logger.custom(modeText: string, style: string, printTime: boolean, ...msgs: any[]);
-```
-
-You can customize permanently the appearance of your logs by modifying the `logStyle` and `modeText` properties of the `Logger` class:
-
-```typescript
-// Only used on website
-Logger.logStyle.info = "background: #customColor; color: #customTextColor; ..."
-
-Logger.modeText["web"].info = "CUSTOM_INFO"
-// This will change the styled output text from "INFO" to "CUSTOM_INFO"
-Logger.modeText["console"].info = "CUSTOM_INFO"
-// This will change the output text from "ℹ" to "CUSTOM_INFO"
-```
-
-&nbsp;
 
 ## 📄 License
 
-Lovely Logs is open-source software licensed under the MIT License.
-
-&nbsp;
+MIT License - feel free to use in your projects!
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our contributing guidelines for more information.
-
-&nbsp;
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 💬 Support
 
-If you encounter any issues or have questions, please feel free to open an issue on our GitHub repository.
+If you encounter any issues or have questions, please open an issue on our GitHub repository.
 
 Happy logging! 🌈
