@@ -39,5 +39,4 @@ Thumbs.db
 
 package-lock.json
 yarn.lock
-test.js
-src/test.ts
+test.ts

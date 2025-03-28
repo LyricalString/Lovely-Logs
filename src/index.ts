@@ -10,6 +10,14 @@ export const LogLevels = {
 	GROUP_COLLAPSED: "groupCollapsed",
 } as const;
 
+export const LogLevelPriority = {
+	DEBUG: 0,
+	INFO: 1,
+	WARN: 2,
+	ERROR: 3,
+	SUCCESS: 4,
+} as const;
+
 export type LogLevel = (typeof LogLevels)[keyof typeof LogLevels];
 export type Platform = "web" | "console" | "lambda";
 
@@ -18,6 +26,7 @@ export interface LoggerOptions {
 	timestampEnabled?: boolean;
 	customStyles?: Partial<typeof defaultStyles>;
 	prefix?: string | Partial<Record<LogLevel, string>>;
+	minLogLevel?: LogLevel;
 }
 
 const defaultStyles = {
@@ -81,6 +90,7 @@ class Logger {
 	private readonly startTime: number;
 	private readonly prefix: Partial<Record<LogLevel, string>>;
 	private groupLevel = 0;
+	private minLogLevel: LogLevel;
 
 	private constructor(options: LoggerOptions = {}) {
 		this.platform = options.platform ?? detectPlatform();
@@ -90,6 +100,7 @@ class Logger {
 			...(options.customStyles || {}),
 		};
 		this.startTime = Date.now();
+		this.minLogLevel = options.minLogLevel ?? LogLevels.DEBUG;
 
 		if (typeof options.prefix === "string") {
 			const prefixValue = options.prefix;
@@ -139,7 +150,28 @@ class Logger {
 		return this.prefix[level] ? `${this.prefix[level]} ` : "";
 	}
 
+	private shouldLog(level: LogLevel): boolean {
+		// Group and GroupCollapsed are special cases that should always be logged
+		if (level === LogLevels.GROUP || level === LogLevels.GROUP_COLLAPSED) {
+			return true;
+		}
+
+		const currentLevelPriority =
+			LogLevelPriority[level.toUpperCase() as keyof typeof LogLevelPriority] ??
+			-1;
+		const minLevelPriority =
+			LogLevelPriority[
+				this.minLogLevel.toUpperCase() as keyof typeof LogLevelPriority
+			] ?? -1;
+
+		return currentLevelPriority >= minLevelPriority;
+	}
+
 	private log(level: LogLevel, ...messages: unknown[]): void {
+		if (!this.shouldLog(level)) {
+			return;
+		}
+
 		const timestamp = this.timeStampEnabled ? `[${this.getTimestamp()}s]` : "";
 		const formattedMessages = this.formatMessages(...messages);
 		const prefix = this.getPrefix(level);
@@ -157,7 +189,7 @@ class Logger {
 
 			case "console":
 				console.log(
-					`${timestamp} ${this.styles.console[level]} ${indent}${prefix}${formattedMessages}`,
+					`${timestamp ? `\x1b[34m${timestamp}\x1b[0m` : ""} ${this.styles.console[level]} ${indent}${prefix}${formattedMessages}`,
 				);
 				break;
 
@@ -221,6 +253,14 @@ class Logger {
 		} else {
 			Object.assign(this.prefix, newPrefix);
 		}
+	}
+
+	public setMinLogLevel(level: LogLevel): void {
+		this.minLogLevel = level;
+	}
+
+	public getMinLogLevel(): LogLevel {
+		return this.minLogLevel;
 	}
 }
 
