@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 
@@ -30,9 +30,17 @@ const log = {
   warn: (msg: string) => console.log(`${COLORS.yellow}⚠${COLORS.reset} ${msg}`),
 };
 
-const exec = (command: string): string => {
+const exec = (
+  command: string,
+  options: { env?: NodeJS.ProcessEnv } = {},
+): string => {
   try {
-    return execSync(command, { stdio: 'pipe' }).toString().trim();
+    return execSync(command, {
+      stdio: 'pipe',
+      ...options,
+    })
+      .toString()
+      .trim();
   } catch (error) {
     console.error(`Failed to execute command: ${command}`);
     console.error(error);
@@ -113,20 +121,30 @@ const updateChangelog = async () => {
 const publish = async () => {
   log.step('Publishing to npm...');
 
+  // Check for npm token in environment
+  const npmToken = process.env.NODE_AUTH_TOKEN;
+  if (!npmToken) {
+    log.warn(
+      'NODE_AUTH_TOKEN environment variable is not set. Please set it with your npm token.',
+    );
+    process.exit(1);
+  }
+
   const publishType = await question(
     'Enter publish tag (latest/beta/alpha) or press enter for latest: ',
   );
 
   try {
+    // Use the existing token from environment
     if (publishType && publishType !== 'latest') {
-      exec(`npm publish --tag ${publishType}`);
+      exec(`npm publish --tag ${publishType} --access public`);
     } else {
-      exec('npm publish');
+      exec('npm publish --access public');
     }
     log.success('Package published');
   } catch (error) {
     log.warn(
-      'Failed to publish package. You might need to login with: npm login',
+      'Failed to publish package. Please check your npm token and permissions.',
     );
     throw error;
   }
