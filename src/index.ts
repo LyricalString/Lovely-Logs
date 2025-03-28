@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { inspect } from "node:util";
 
 export const LogLevels = {
 	DEBUG: "debug",
@@ -147,21 +148,14 @@ class Logger {
 		return messages
 			.map((msg) => {
 				if (msg instanceof Error) {
-					return JSON.stringify(
-						{
-							...msg, // Include any custom properties
-							name: msg.name,
-							message: msg.message,
-							stack: msg.stack,
-						},
-						null,
-						2,
-					);
+					return ""; // Skip error objects as they'll be handled separately
 				}
-				return typeof msg === "object"
-					? JSON.stringify(msg, null, 2)
-					: String(msg);
+				if (typeof msg === "object") {
+					return inspect(msg, { colors: true, depth: null });
+				}
+				return String(msg);
 			})
+			.filter(Boolean) // Remove empty strings from skipped errors
 			.join(" ");
 	}
 
@@ -192,31 +186,96 @@ class Logger {
 		}
 
 		const timestamp = this.timeStampEnabled ? `[${this.getTimestamp()}s]` : "";
-		const formattedMessages = this.formatMessages(...messages);
 		const prefix = this.getPrefix(level);
 		const indent = "  ".repeat(this.groupLevel);
 
 		switch (this.platform) {
-			case "web":
-				console.log(
-					`%c${this.styles.web[level]}%c${timestamp}`,
-					this.styles.web[level],
-					this.styles.web.time,
-					`${indent}${prefix}${formattedMessages}`,
-				);
-				break;
+			case "web": {
+				// Web platform uses CSS styling
+				if (level === "error" && messages.some((msg) => msg instanceof Error)) {
+					const nonErrorMessages = messages.filter(
+						(msg) => !(msg instanceof Error),
+					);
+					const errors = messages.filter((msg) => msg instanceof Error);
 
-			case "console":
-				console.log(
-					`${timestamp ? `\x1b[34m${timestamp}\x1b[0m` : ""} ${this.styles.console[level]} ${indent}${prefix}${formattedMessages}`,
-				);
-				break;
+					// Log non-error messages with styling
+					if (nonErrorMessages.length > 0) {
+						console.log(
+							`%c${indent}${prefix}${this.formatMessages(...nonErrorMessages)}`,
+							this.styles.web[level],
+						);
+					}
 
-			case "lambda":
-				console.log(
-					`${timestamp} ${this.styles.lambda[level]} ${indent}${prefix}${formattedMessages}`,
-				);
+					// Log errors with native formatting
+					for (const error of errors) {
+						console.error(error);
+					}
+				} else {
+					console.log(
+						`%c${indent}${prefix}${this.formatMessages(...messages)}`,
+						this.styles.web[level],
+					);
+				}
 				break;
+			}
+
+			case "console": {
+				// Console platform uses ANSI colors
+				if (level === "error" && messages.some((msg) => msg instanceof Error)) {
+					const nonErrorMessages = messages.filter(
+						(msg) => !(msg instanceof Error),
+					);
+					const errors = messages.filter((msg) => msg instanceof Error);
+
+					// Log non-error messages with ANSI colors
+					if (nonErrorMessages.length > 0) {
+						console.log(
+							`${timestamp ? `\x1b[34m${timestamp}\x1b[0m ` : ""}${this.styles.console[level]} ${indent}${prefix}${this.formatMessages(...nonErrorMessages)}`,
+						);
+					}
+
+					// Log errors with native formatting but keep our prefix
+					for (const error of errors) {
+						const errorPrefix = `${timestamp ? `\x1b[34m${timestamp}\x1b[0m ` : ""}${this.styles.console[level]} ${indent}${prefix}`;
+						console.error(errorPrefix, error);
+					}
+				} else {
+					// Add a space after the level symbol for better readability
+					console.log(
+						`${timestamp ? `\x1b[34m${timestamp}\x1b[0m ` : ""}${this.styles.console[level]} ${indent}${prefix}${this.formatMessages(...messages)}`,
+					);
+				}
+				break;
+			}
+
+			case "lambda": {
+				// Lambda platform uses simple text prefixes
+				if (level === "error" && messages.some((msg) => msg instanceof Error)) {
+					const nonErrorMessages = messages.filter(
+						(msg) => !(msg instanceof Error),
+					);
+					const errors = messages.filter((msg) => msg instanceof Error);
+
+					// Log non-error messages
+					if (nonErrorMessages.length > 0) {
+						console.log(
+							`${timestamp} ${this.styles.lambda[level]} ${indent}${prefix}${this.formatMessages(...nonErrorMessages)}`,
+						);
+					}
+
+					// Log errors with native formatting but keep our prefix
+					for (const error of errors) {
+						const errorPrefix = `${timestamp} ${this.styles.lambda[level]} ${indent}${prefix}`;
+						console.error(errorPrefix);
+						console.error(error);
+					}
+				} else {
+					console.log(
+						`${timestamp} ${this.styles.lambda[level]} ${indent}${prefix}${this.formatMessages(...messages)}`,
+					);
+				}
+				break;
+			}
 		}
 	}
 
