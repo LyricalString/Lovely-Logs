@@ -213,10 +213,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This package uses GitHub Actions to automatically publish to NPM when a new version tag is pushed. To publish a new version:
 
-1. First, ensure you have the necessary permissions and have set up the NPM_TOKEN secret in your GitHub repository:
+1. First, ensure you have the necessary permissions and have set up the NODE_AUTH_TOKEN secret in your GitHub repository:
    - Go to your NPM account settings and create a new access token
    - Go to your GitHub repository settings > Secrets and variables > Actions
-   - Add a new secret named `NPM_TOKEN` with your NPM access token
+   - Add a new secret named `NODE_AUTH_TOKEN` with your NPM access token
 
 2. To publish a new version:
    ```bash

@@ -8,9 +8,6 @@ const rl = createInterface({
   output: process.stdout,
 });
 
-const question = (query: string): Promise<string> =>
-  new Promise((resolve) => rl.question(query, resolve));
-
 const COLORS = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -18,6 +15,8 @@ const COLORS = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  gray: '\x1b[90m',
 };
 
 const log = {
@@ -61,19 +60,108 @@ const checkWorkingDirectory = () => {
   log.success('Working directory is clean');
 };
 
+interface Option {
+  value: string;
+  label: string;
+  description: string;
+}
+
+const selectOption = async (
+  message: string,
+  options: Option[],
+): Promise<string> => {
+  return new Promise((resolve) => {
+    let selectedIndex = 0;
+
+    // Hide the cursor
+    process.stdout.write('\x1B[?25l');
+
+    const renderOptions = () => {
+      // Clear previous render
+      if (selectedIndex < options.length) {
+        process.stdout.write(`\x1B[${options.length}A`);
+      }
+
+      // Show message
+      console.log(`${COLORS.blue}?${COLORS.reset} ${message}\n`);
+
+      // Render options
+      options.forEach((opt, i) => {
+        const isSelected = i === selectedIndex;
+        const prefix = isSelected ? '❯' : ' ';
+        const label = isSelected
+          ? `${COLORS.cyan}${opt.label}${COLORS.reset}`
+          : opt.label;
+        const description = isSelected
+          ? `${COLORS.gray}${opt.description}${COLORS.reset}`
+          : `${COLORS.gray}${opt.description}${COLORS.reset}`;
+        console.log(`  ${prefix} ${label} - ${description}`);
+      });
+    };
+
+    renderOptions();
+
+    // Handle keypress
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf-8');
+
+    process.stdin.on('data', (key) => {
+      const keyStr = String(key);
+
+      if (keyStr === '\u001B[A' && selectedIndex > 0) {
+        // Up arrow
+        selectedIndex--;
+        renderOptions();
+      } else if (keyStr === '\u001B[B' && selectedIndex < options.length - 1) {
+        // Down arrow
+        selectedIndex++;
+        renderOptions();
+      } else if (keyStr === '\r') {
+        // Enter key
+        process.stdin.setRawMode(false);
+        process.stdin.pause();
+        // Show cursor again
+        process.stdout.write('\x1B[?25h');
+        // Move cursor to end
+        process.stdout.write('\n');
+        resolve(options[selectedIndex].value);
+      } else if (keyStr === '\u0003') {
+        // Ctrl+C
+        process.stdout.write('\x1B[?25h');
+        process.exit(0);
+      }
+    });
+  });
+};
+
 const updateVersion = async () => {
   const packageJson = JSON.parse(readFileSync('package.json', 'utf-8'));
   const currentVersion = packageJson.version;
   log.info(`Current version: ${currentVersion}`);
 
-  const versionType = await question(
-    'Enter version type (patch/minor/major): ',
-  );
+  const versionOptions: Option[] = [
+    {
+      value: 'patch',
+      label: 'patch',
+      description: 'Bug fixes and minor changes (0.0.X)',
+    },
+    {
+      value: 'minor',
+      label: 'minor',
+      description: 'New features, backward compatible (0.X.0)',
+    },
+    {
+      value: 'major',
+      label: 'major',
+      description: 'Breaking changes (X.0.0)',
+    },
+  ];
 
-  if (!['patch', 'minor', 'major'].includes(versionType)) {
-    log.warn('Invalid version type. Must be patch, minor, or major.');
-    process.exit(1);
-  }
+  const versionType = await selectOption(
+    'Select version type:',
+    versionOptions,
+  );
 
   // Run npm version which will:
   // 1. Update version in package.json
