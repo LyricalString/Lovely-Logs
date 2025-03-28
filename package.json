@@ -12,7 +12,7 @@
 		"format": "bunx @biomejs/biome format --write .",
 		"lint": "bunx @biomejs/biome lint .",
 		"check": "bunx @biomejs/biome check --apply .",
-		"release-prep": "bun scripts/prepare.ts"
+		"prepare": "bun scripts/prepare.ts"
 	},
 	"keywords": [
 		"fancy logs",
