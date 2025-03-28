@@ -11,8 +11,8 @@
     "format": "bunx @biomejs/biome format --write .",
     "lint": "bunx @biomejs/biome lint .",
     "check": "bunx @biomejs/biome check --apply .",
-    "release": "bun scripts/release.ts",
-    "prepare": "bun run build"
+    "prepare": "bun scripts/prepare.ts",
+    "publish": "npm publish"
   },
   "keywords": [
     "fancy logs",
@@ -27,9 +27,7 @@
   ],
   "author": "LyricalString",
   "license": "MIT",
-  "files": [
-    "build/**/*"
-  ],
+  "files": ["build/**/*"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/LyricalString/Lovely-Logs.git"

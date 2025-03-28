@@ -118,12 +118,6 @@ const updateVersion = async () => {
   return newVersion;
 };
 
-const publishPackage = () => {
-  log.step('Publishing package to npm...');
-  exec('npm publish');
-  log.success('Package published successfully');
-};
-
 const pushChanges = (version: string) => {
   log.step('Pushing all changes and tags...');
 
@@ -151,17 +145,14 @@ const main = async () => {
     // Update version and get the new version number
     const newVersion = await updateVersion();
 
-    // Publish to npm
-    publishPackage();
-
     // Push all changes and tags
     pushChanges(newVersion);
 
-    log.success('Release completed successfully! 🎉');
+    log.success('Prepare completed successfully! 🎉');
     log.info(`Package published as lovely-logs@${newVersion}`);
     log.info('You can view it at: https://www.npmjs.com/package/lovely-logs');
   } catch (error) {
-    console.error('Release failed:', error);
+    console.error('Prepare failed:', error);
     process.exit(1);
   }
 };
