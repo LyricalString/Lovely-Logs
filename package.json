@@ -14,9 +14,6 @@
     "release": "bun scripts/release.ts",
     "prepare": "bun run build"
   },
-  "bin": {
-    "lovely-logs-release": "./build/scripts/release.js"
-  },
   "keywords": [
     "fancy logs",
     "console log",
@@ -30,9 +27,7 @@
   ],
   "author": "LyricalString",
   "license": "MIT",
-  "files": [
-    "build/**/*"
-  ],
+  "files": ["build/**/*"],
   "repository": {
     "type": "git",
     "url": "https://github.com/LyricalString/Lovely-Logs.git"
