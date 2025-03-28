@@ -10,13 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
           scope: '@lyricalstring'
+          always-auth: true
+          token: ${{ secrets.NPM_TOKEN }}
 
       - name: Install bun
         uses: oven-sh/setup-bun@v1
@@ -26,17 +28,12 @@ jobs:
 
       - name: Run tests
         run: bun test
-        
+
       - name: Build
         run: bun run build
-      
-      - name: Create .npmrc
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
-          echo "registry=https://registry.npmjs.org/" >> .npmrc
-          echo "always-auth=true" >> .npmrc
-      
+
       - name: Publish to NPM
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # env:
+        #   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        #   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
