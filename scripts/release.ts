@@ -55,6 +55,24 @@ const checkWorkingDirectory = () => {
   log.success('Working directory is clean');
 };
 
+const checkNpmLogin = () => {
+  log.step('Checking npm login status...');
+  try {
+    const whoami = exec('npm whoami');
+    log.success(`Logged in as ${whoami}`);
+  } catch (error) {
+    log.warn('You are not logged in to npm. Please run:');
+    log.info('npm login');
+    process.exit(1);
+  }
+};
+
+const buildPackage = () => {
+  log.step('Building package...');
+  exec('npm run build');
+  log.success('Package built successfully');
+};
+
 const updateVersion = async () => {
   const packageJson = JSON.parse(readFileSync('package.json', 'utf-8'));
   const currentVersion = packageJson.version;
@@ -100,6 +118,12 @@ const updateVersion = async () => {
   return newVersion;
 };
 
+const publishPackage = () => {
+  log.step('Publishing package to npm...');
+  exec('npm publish --access public');
+  log.success('Package published successfully');
+};
+
 const pushChanges = (version: string) => {
   log.step('Pushing all changes and tags...');
 
@@ -107,15 +131,6 @@ const pushChanges = (version: string) => {
   exec('git push --follow-tags');
 
   log.success(`Changes and tag v${version} pushed to remote`);
-  log.info('GitHub Actions will now:');
-  log.info('1. Run tests');
-  log.info('2. Build the package');
-  log.info('3. Publish to npm if all checks pass');
-  log.info('\nYou can check the progress at:');
-  const repoUrl = exec('git config --get remote.origin.url')
-    .replace('git@github.com:', 'https://github.com/')
-    .replace('.git', '');
-  log.info(`${repoUrl}/actions`);
 };
 
 const main = async () => {
@@ -123,17 +138,28 @@ const main = async () => {
     // Check if working directory is clean
     checkWorkingDirectory();
 
+    // Check if logged in to npm
+    checkNpmLogin();
+
     // Pull latest changes to ensure we're up to date
     log.step('Pulling latest changes...');
     exec('git pull origin main');
 
+    // Build the package
+    buildPackage();
+
     // Update version and get the new version number
     const newVersion = await updateVersion();
+
+    // Publish to npm
+    publishPackage();
 
     // Push all changes and tags
     pushChanges(newVersion);
 
-    log.success('Release preparation completed successfully! 🎉');
+    log.success('Release completed successfully! 🎉');
+    log.info(`Package published as lovely-logs@${newVersion}`);
+    log.info('You can view it at: https://www.npmjs.com/package/lovely-logs');
   } catch (error) {
     console.error('Release failed:', error);
     process.exit(1);
