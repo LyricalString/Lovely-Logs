@@ -1,12 +1,7 @@
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { createInterface } from 'node:readline';
-
-const rl = createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+import prompts from 'prompts';
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -60,108 +55,39 @@ const checkWorkingDirectory = () => {
   log.success('Working directory is clean');
 };
 
-interface Option {
-  value: string;
-  label: string;
-  description: string;
-}
-
-const selectOption = async (
-  message: string,
-  options: Option[],
-): Promise<string> => {
-  return new Promise((resolve) => {
-    let selectedIndex = 0;
-
-    // Hide the cursor
-    process.stdout.write('\x1B[?25l');
-
-    const renderOptions = () => {
-      // Clear previous render
-      if (selectedIndex < options.length) {
-        process.stdout.write(`\x1B[${options.length}A`);
-      }
-
-      // Show message
-      console.log(`${COLORS.blue}?${COLORS.reset} ${message}\n`);
-
-      // Render options
-      options.forEach((opt, i) => {
-        const isSelected = i === selectedIndex;
-        const prefix = isSelected ? '❯' : ' ';
-        const label = isSelected
-          ? `${COLORS.cyan}${opt.label}${COLORS.reset}`
-          : opt.label;
-        const description = isSelected
-          ? `${COLORS.gray}${opt.description}${COLORS.reset}`
-          : `${COLORS.gray}${opt.description}${COLORS.reset}`;
-        console.log(`  ${prefix} ${label} - ${description}`);
-      });
-    };
-
-    renderOptions();
-
-    // Handle keypress
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.setEncoding('utf-8');
-
-    process.stdin.on('data', (key) => {
-      const keyStr = String(key);
-
-      if (keyStr === '\u001B[A' && selectedIndex > 0) {
-        // Up arrow
-        selectedIndex--;
-        renderOptions();
-      } else if (keyStr === '\u001B[B' && selectedIndex < options.length - 1) {
-        // Down arrow
-        selectedIndex++;
-        renderOptions();
-      } else if (keyStr === '\r') {
-        // Enter key
-        process.stdin.setRawMode(false);
-        process.stdin.pause();
-        // Show cursor again
-        process.stdout.write('\x1B[?25h');
-        // Move cursor to end
-        process.stdout.write('\n');
-        resolve(options[selectedIndex].value);
-      } else if (keyStr === '\u0003') {
-        // Ctrl+C
-        process.stdout.write('\x1B[?25h');
-        process.exit(0);
-      }
-    });
-  });
-};
-
 const updateVersion = async () => {
   const packageJson = JSON.parse(readFileSync('package.json', 'utf-8'));
   const currentVersion = packageJson.version;
   log.info(`Current version: ${currentVersion}`);
 
-  const versionOptions: Option[] = [
-    {
-      value: 'patch',
-      label: 'patch',
-      description: 'Bug fixes and minor changes (0.0.X)',
-    },
-    {
-      value: 'minor',
-      label: 'minor',
-      description: 'New features, backward compatible (0.X.0)',
-    },
-    {
-      value: 'major',
-      label: 'major',
-      description: 'Breaking changes (X.0.0)',
-    },
-  ];
+  const { versionType } = await prompts({
+    type: 'select',
+    name: 'versionType',
+    message: 'Select version type:',
+    choices: [
+      {
+        title: 'patch - Bug fixes and minor changes (0.0.X)',
+        value: 'patch',
+        description: 'For bug fixes and minor changes',
+      },
+      {
+        title: 'minor - New features, backward compatible (0.X.0)',
+        value: 'minor',
+        description: 'For new features that are backward compatible',
+      },
+      {
+        title: 'major - Breaking changes (X.0.0)',
+        value: 'major',
+        description: 'For breaking changes',
+      },
+    ],
+    initial: 0,
+  });
 
-  const versionType = await selectOption(
-    'Select version type:',
-    versionOptions,
-  );
+  if (!versionType) {
+    log.warn('Version selection cancelled');
+    process.exit(0);
+  }
 
   // Run npm version which will:
   // 1. Update version in package.json
@@ -211,8 +137,6 @@ const main = async () => {
   } catch (error) {
     console.error('Release failed:', error);
     process.exit(1);
-  } finally {
-    rl.close();
   }
 };
 
