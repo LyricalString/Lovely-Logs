@@ -1,6 +1,6 @@
 {
 	"name": "lovely-logs",
-	"version": "2.2.1",
+	"version": "2.3.0",
 	"description": "Lovely console logs for website development on NodeJS. Supports colors, timestamps, and more.",
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
