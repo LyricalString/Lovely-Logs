@@ -48,38 +48,38 @@ const exec = (
   }
 };
 
+const checkWorkingDirectory = () => {
+  log.step('Checking working directory...');
+  if (exec('git status --porcelain')) {
+    log.warn(
+      'Working directory is not clean. Please commit or stash changes first.',
+    );
+    process.exit(1);
+  }
+  log.success('Working directory is clean');
+};
+
 const updateVersion = async () => {
   const packageJson = JSON.parse(readFileSync('package.json', 'utf-8'));
   const currentVersion = packageJson.version;
   log.info(`Current version: ${currentVersion}`);
 
   const versionType = await question(
-    'Enter version type (patch/minor/major) or specific version: ',
+    'Enter version type (patch/minor/major): ',
   );
 
-  // Format and check code first
-  log.step('Formatting code...');
-  exec('bunx @biomejs/biome format --write .');
-  exec('bunx @biomejs/biome check --apply .');
-
-  // Stage formatted files
-  exec('git add .');
-
-  // Now update version
-  if (['patch', 'minor', 'major'].includes(versionType)) {
-    exec(`npm --no-git-tag-version version ${versionType}`);
-  } else {
-    exec(`npm --no-git-tag-version version ${versionType}`);
+  if (!['patch', 'minor', 'major'].includes(versionType)) {
+    log.warn('Invalid version type. Must be patch, minor, or major.');
+    process.exit(1);
   }
 
-  // Get new version
-  const newPackageJson = JSON.parse(readFileSync('package.json', 'utf-8'));
-  const newVersion = newPackageJson.version;
+  // Run npm version which will:
+  // 1. Update version in package.json
+  // 2. Create a git tag
+  // 3. Create a version commit
+  exec(`npm version ${versionType}`);
 
-  // Stage package.json and create version commit
-  exec('git add package.json');
-  exec(`git commit -m "chore: release version ${newVersion}"`);
-
+  const newVersion = JSON.parse(readFileSync('package.json', 'utf-8')).version;
   log.success(`Version updated to ${newVersion}`);
 };
 
@@ -95,53 +95,32 @@ const build = () => {
   log.success('Build completed');
 };
 
-const updateChangelog = async () => {
-  log.step('Updating CHANGELOG.md...');
-
-  const packageJson = JSON.parse(readFileSync('package.json', 'utf-8'));
-  const version = packageJson.version;
-  const date = new Date().toISOString().split('T')[0];
-
-  const changes = await question(
-    'Enter changelog entry (or press enter to skip): ',
-  );
-
-  if (changes) {
-    const existingChangelog = readFileSync('CHANGELOG.md', 'utf-8') || '';
-    const changelog = `# ${version} (${date})\n\n${changes}\n\n${existingChangelog}`;
-
-    writeFileSync('CHANGELOG.md', changelog);
-    exec('git add CHANGELOG.md');
-    log.success('Changelog updated');
-  } else {
-    log.warn('Skipping changelog update');
-  }
-};
-
 const publish = async () => {
   log.step('Publishing to npm...');
 
   // Check for npm token in environment
-  const npmToken = process.env.NODE_AUTH_TOKEN;
+  const npmToken = process.env.NPM_TOKEN || process.env.NODE_AUTH_TOKEN;
   if (!npmToken) {
     log.warn(
-      'NODE_AUTH_TOKEN environment variable is not set. Please set it with your npm token.',
+      'NPM_TOKEN environment variable is not set. Please set it with your npm token.',
     );
     process.exit(1);
   }
 
-  const publishType = await question(
-    'Enter publish tag (latest/beta/alpha) or press enter for latest: ',
-  );
-
   try {
-    // Use the existing token from environment
-    if (publishType && publishType !== 'latest') {
-      exec(`npm publish --tag ${publishType} --access public`);
-    } else {
+    // Create temporary .npmrc file for publishing
+    const npmrcContent = `//registry.npmjs.org/:_authToken=${npmToken}`;
+    writeFileSync('.npmrc', npmrcContent);
+
+    try {
       exec('npm publish --access public');
+      log.success('Package published to npm');
+    } finally {
+      // Always clean up the .npmrc file
+      if (existsSync('.npmrc')) {
+        exec('rm .npmrc');
+      }
     }
-    log.success('Package published');
   } catch (error) {
     log.warn(
       'Failed to publish package. Please check your npm token and permissions.',
@@ -150,34 +129,27 @@ const publish = async () => {
   }
 };
 
-const createGitTag = () => {
-  log.step('Creating git tag...');
-  const version = JSON.parse(readFileSync('package.json', 'utf-8')).version;
-  exec(`git tag -a v${version} -m "Release ${version}"`);
-  exec('git push --tags');
-  log.success('Git tag created and pushed');
+const pushChanges = () => {
+  log.step('Pushing changes and tags...');
+  exec('git push --follow-tags');
+  log.success('Changes and tags pushed');
 };
 
 const main = async () => {
   try {
     // Check if working directory is clean
-    if (exec('git status --porcelain')) {
-      log.warn(
-        'Working directory is not clean. Please commit or stash changes first.',
-      );
-      process.exit(1);
-    }
+    checkWorkingDirectory();
 
     // Pull latest changes
     log.step('Pulling latest changes...');
     exec('git pull origin main');
 
+    // Run the release process
     await updateVersion();
     runTests();
     build();
-    await updateChangelog();
     await publish();
-    createGitTag();
+    pushChanges();
 
     log.success('Release completed successfully! 🎉');
   } catch (error) {

@@ -1,3 +1,4 @@
+```markdown
 # 🌈 Lovely Logs
 
 A modern, type-safe logging library that automatically adapts to your environment - whether you're in Node.js, the browser, or AWS Lambda. With beautiful colors, timestamps, and smart platform detection.
@@ -219,12 +220,16 @@ This package uses GitHub Actions to automatically publish to NPM when a new vers
 
 2. To publish a new version:
    ```bash
-   # Update version in package.json
-   bun version patch  # for bug fixes
+   # Make sure all your changes are committed first
+   git add .
+   git commit -m "feat: your changes description"
+
+   # Update version in package.json and create a new git tag
+   npm version patch  # for bug fixes
    # or
-   bun version minor  # for new features
+   npm version minor  # for new features
    # or
-   bun version major  # for breaking changes
+   npm version major  # for breaking changes
 
    # Push the changes and the new tag
    git push --follow-tags
@@ -240,3 +245,4 @@ This package uses GitHub Actions to automatically publish to NPM when a new vers
 If you encounter any issues or have questions, please open an issue on our GitHub repository.
 
 Happy logging! 🌈
+```
