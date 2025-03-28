@@ -149,8 +149,6 @@ const main = async () => {
     pushChanges(newVersion);
 
     log.success('Prepare completed successfully! 🎉');
-    log.info(`Package published as lovely-logs@${newVersion}`);
-    log.info('You can view it at: https://www.npmjs.com/package/lovely-logs');
   } catch (error) {
     console.error('Prepare failed:', error);
     process.exit(1);
