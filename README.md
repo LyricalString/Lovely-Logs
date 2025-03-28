@@ -1,4 +1,3 @@
-```markdown
 # 🌈 Lovely Logs
 
 A modern, type-safe logging library that automatically adapts to your environment - whether you're in Node.js, the browser, or AWS Lambda. With beautiful colors, timestamps, and smart platform detection.
@@ -211,34 +210,28 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### Publishing to NPM
 
-This package uses GitHub Actions to automatically publish to NPM when a new version tag is pushed. To publish a new version:
+To publish a new version to NPM:
 
-1. First, ensure you have the necessary permissions and have set up the NODE_AUTH_TOKEN secret in your GitHub repository:
-   - Go to your NPM account settings and create a new access token
-   - Go to your GitHub repository settings > Secrets and variables > Actions
-   - Add a new secret named `NODE_AUTH_TOKEN` with your NPM access token
-
-2. To publish a new version:
+1. Make sure you're logged in to npm:
    ```bash
-   # Make sure all your changes are committed first
-   git add .
-   git commit -m "feat: your changes description"
-
-   # Update version in package.json and create a new git tag
-   npm version patch  # for bug fixes
-   # or
-   npm version minor  # for new features
-   # or
-   npm version major  # for breaking changes
-
-   # Push the changes and the new tag
-   git push --follow-tags
+   npm login
    ```
 
-3. The GitHub Action will automatically:
-   - Run tests
+2. Ensure all your changes are committed:
+   ```bash
+   git add .
+   git commit -m "feat: your changes description"
+   ```
+
+3. Run npm publish:
+   ```bash
+   npm publish
+   ```
+   This will automatically:
+   - Run the prepare script
    - Build the package
-   - Publish to NPM if all checks pass
+   - Publish to NPM
+   - You might be asked for a one-time password (OTP) if you have 2FA enabled
 
 ## 💬 Support
 

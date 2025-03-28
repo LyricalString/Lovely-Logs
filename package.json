@@ -26,9 +26,7 @@
   ],
   "author": "LyricalString",
   "license": "MIT",
-  "files": [
-    "build/**/*"
-  ],
+  "files": ["build/**/*"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/LyricalString/Lovely-Logs.git"
