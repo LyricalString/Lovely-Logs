@@ -122,6 +122,29 @@ The library supports the following log levels:
 - `group`: For grouping related logs
 - `groupCollapsed`: For collapsible groups (in supported platforms)
 
+You can set the minimum log level in three ways:
+
+1. Using environment variable:
+```bash
+# Set minimum log level via environment variable
+export LOG_LEVEL=INFO  # Will show INFO and above (INFO, WARN, ERROR, SUCCESS)
+export LOG_LEVEL=ERROR # Will show ERROR and SUCCESS only
+```
+
+2. Using options when creating the logger:
+```typescript
+const logger = createLogger({
+  minLogLevel: "info" // Will show INFO and above
+});
+```
+
+3. Dynamically at runtime:
+```typescript
+logger.setMinLogLevel("warn"); // Will show WARN and above
+```
+
+Note: If both environment variable and options are provided, the options take precedence.
+
 ### Custom Styling
 
 ```typescript

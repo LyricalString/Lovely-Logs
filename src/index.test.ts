@@ -46,6 +46,16 @@ describe("Logger", () => {
 	});
 
 	describe("Log Level Filtering", () => {
+		let originalLogLevel: string | undefined;
+
+		beforeEach(() => {
+			originalLogLevel = process.env.LOG_LEVEL;
+		});
+
+		afterEach(() => {
+			process.env.LOG_LEVEL = originalLogLevel;
+		});
+
 		test("should log all levels when minLogLevel is DEBUG", () => {
 			testLogger = createLogger({ minLogLevel: "debug" });
 
@@ -56,6 +66,45 @@ describe("Logger", () => {
 			testLogger.success("success message");
 
 			expect(consoleLogSpy).toHaveBeenCalledTimes(5);
+		});
+
+		test("should respect LOG_LEVEL environment variable", () => {
+			process.env.LOG_LEVEL = "ERROR";
+
+			testLogger = createLogger();
+
+			testLogger.debug("debug message");
+			testLogger.info("info message");
+			testLogger.warn("warn message");
+			testLogger.error("error message");
+			testLogger.success("success message");
+
+			expect(consoleLogSpy).toHaveBeenCalledTimes(2); // Only error and success should be logged
+		});
+
+		test("should ignore invalid LOG_LEVEL environment variable", () => {
+			process.env.LOG_LEVEL = "INVALID_LEVEL";
+
+			testLogger = createLogger();
+
+			testLogger.debug("debug message");
+			testLogger.info("info message");
+
+			expect(consoleLogSpy).toHaveBeenCalledTimes(2); // Should default to DEBUG level
+		});
+
+		test("should prioritize options.minLogLevel over LOG_LEVEL environment variable", () => {
+			process.env.LOG_LEVEL = "ERROR";
+
+			testLogger = createLogger({ minLogLevel: "info" });
+
+			testLogger.debug("debug message");
+			testLogger.info("info message");
+			testLogger.warn("warn message");
+			testLogger.error("error message");
+			testLogger.success("success message");
+
+			expect(consoleLogSpy).toHaveBeenCalledTimes(4); // Should use INFO level from options
 		});
 
 		test("should not log DEBUG when minLogLevel is INFO", () => {

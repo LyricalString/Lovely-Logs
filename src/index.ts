@@ -100,7 +100,12 @@ class Logger {
 			...(options.customStyles || {}),
 		};
 		this.startTime = Date.now();
-		this.minLogLevel = options.minLogLevel ?? LogLevels.DEBUG;
+
+		// Check for LOG_LEVEL environment variable
+		const envLogLevel = process.env.LOG_LEVEL?.toLowerCase() as LogLevel;
+		const isValidLogLevel = Object.values(LogLevels).includes(envLogLevel);
+		this.minLogLevel =
+			options.minLogLevel ?? (isValidLogLevel ? envLogLevel : LogLevels.DEBUG);
 
 		if (typeof options.prefix === "string") {
 			const prefixValue = options.prefix;
