@@ -120,7 +120,7 @@ const updateVersion = async () => {
 
 const publishPackage = () => {
   log.step('Publishing package to npm...');
-  exec('npm publish --access public');
+  exec('npm publish');
   log.success('Package published successfully');
 };
 
