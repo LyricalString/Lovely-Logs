@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 
 const rl = createInterface({
@@ -52,7 +51,10 @@ const checkWorkingDirectory = () => {
   log.step('Checking working directory...');
   if (exec('git status --porcelain')) {
     log.warn(
-      'Working directory is not clean. Please commit or stash changes first.',
+      'Working directory is not clean. Please commit your changes first:\n' +
+        'git add .\n' +
+        'git commit -m "your changes"\n' +
+        'Then run this script again.',
     );
     process.exit(1);
   }
@@ -81,58 +83,25 @@ const updateVersion = async () => {
 
   const newVersion = JSON.parse(readFileSync('package.json', 'utf-8')).version;
   log.success(`Version updated to ${newVersion}`);
+  return newVersion;
 };
 
-const runTests = () => {
-  log.step('Running tests...');
-  exec('bun test');
-  log.success('Tests passed');
-};
+const pushChanges = (version: string) => {
+  log.step('Pushing all changes and tags...');
 
-const build = () => {
-  log.step('Building package...');
-  exec('bun run build');
-  log.success('Build completed');
-};
-
-const publish = async () => {
-  log.step('Publishing to npm...');
-
-  // Check for npm token in environment
-  const npmToken = process.env.NPM_TOKEN || process.env.NODE_AUTH_TOKEN;
-  if (!npmToken) {
-    log.warn(
-      'NPM_TOKEN environment variable is not set. Please set it with your npm token.',
-    );
-    process.exit(1);
-  }
-
-  try {
-    // Create temporary .npmrc file for publishing
-    const npmrcContent = `//registry.npmjs.org/:_authToken=${npmToken}`;
-    writeFileSync('.npmrc', npmrcContent);
-
-    try {
-      exec('npm publish --access public');
-      log.success('Package published to npm');
-    } finally {
-      // Always clean up the .npmrc file
-      if (existsSync('.npmrc')) {
-        exec('rm .npmrc');
-      }
-    }
-  } catch (error) {
-    log.warn(
-      'Failed to publish package. Please check your npm token and permissions.',
-    );
-    throw error;
-  }
-};
-
-const pushChanges = () => {
-  log.step('Pushing changes and tags...');
+  // Push all unpushed commits and tags
   exec('git push --follow-tags');
-  log.success('Changes and tags pushed');
+
+  log.success(`Changes and tag v${version} pushed to remote`);
+  log.info('GitHub Actions will now:');
+  log.info('1. Run tests');
+  log.info('2. Build the package');
+  log.info('3. Publish to npm if all checks pass');
+  log.info('\nYou can check the progress at:');
+  const repoUrl = exec('git config --get remote.origin.url')
+    .replace('git@github.com:', 'https://github.com/')
+    .replace('.git', '');
+  log.info(`${repoUrl}/actions`);
 };
 
 const main = async () => {
@@ -140,18 +109,17 @@ const main = async () => {
     // Check if working directory is clean
     checkWorkingDirectory();
 
-    // Pull latest changes
+    // Pull latest changes to ensure we're up to date
     log.step('Pulling latest changes...');
     exec('git pull origin main');
 
-    // Run the release process
-    await updateVersion();
-    runTests();
-    build();
-    await publish();
-    pushChanges();
+    // Update version and get the new version number
+    const newVersion = await updateVersion();
 
-    log.success('Release completed successfully! 🎉');
+    // Push all changes and tags
+    pushChanges(newVersion);
+
+    log.success('Release preparation completed successfully! 🎉');
   } catch (error) {
     console.error('Release failed:', error);
     process.exit(1);
