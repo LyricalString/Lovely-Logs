@@ -145,9 +145,23 @@ class Logger {
 
 	private formatMessages(...messages: unknown[]): string {
 		return messages
-			.map((msg) =>
-				typeof msg === "object" ? JSON.stringify(msg, null, 2) : String(msg),
-			)
+			.map((msg) => {
+				if (msg instanceof Error) {
+					return JSON.stringify(
+						{
+							...msg, // Include any custom properties
+							name: msg.name,
+							message: msg.message,
+							stack: msg.stack,
+						},
+						null,
+						2,
+					);
+				}
+				return typeof msg === "object"
+					? JSON.stringify(msg, null, 2)
+					: String(msg);
+			})
 			.join(" ");
 	}
 

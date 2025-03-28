@@ -9,7 +9,7 @@ import {
 	afterEach,
 	mock,
 } from "bun:test";
-import { createLogger, LogLevels, type Logger, logger } from "./index";
+import { createLogger, LogLevels, type Logger, logger } from "../src/index";
 
 describe("Logger", () => {
 	let testLogger: Logger;
