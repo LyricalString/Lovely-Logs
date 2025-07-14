@@ -69,17 +69,15 @@ export interface LoggerOptions {
 
 const defaultStyles = {
 	web: {
-		debug: "color: #787878;",
-		info: "background: #3880ff; color: #ffffff; border-radius: 3px; padding: 0 5px; font-weight: bold;",
-		success:
-			"background: #10dc60; color: #ffffff; border-radius: 3px; padding: 0 5px",
-		warn: "background: #ffce00; color: #ffffff; border-radius: 3px; padding: 0 5px",
-		error:
-			"background: #f04141; color: #ffffff; border-radius: 3px; padding: 0 5px",
-		time: "color: #ffce00",
-		title: "font-size: 1.5rem",
-		group: "color: #3880ff; font-weight: bold;",
-		groupCollapsed: "color: #3880ff;",
+		debug: "color: #888; font-style: italic;",
+		info: "color: #0066cc; font-weight: 500;",
+		success: "color: #28a745; font-weight: 500;",
+		warn: "color: #ffa500; font-weight: 500;",
+		error: "color: #dc3545; font-weight: bold;",
+		time: "color: #6c757d;",
+		title: "font-size: 1.5rem; font-weight: bold;",
+		group: "color: #0066cc; font-weight: bold;",
+		groupCollapsed: "color: #0066cc; font-weight: 500;",
 	},
 	console: {
 		debug: "\x1b[90m◯\x1b[0m",
@@ -224,7 +222,7 @@ class Logger {
 		// Include any custom properties
 		for (const key of Object.getOwnPropertyNames(error)) {
 			if (!['name', 'message', 'stack'].includes(key)) {
-				serialized[key] = (error as any)[key];
+				serialized[key] = (error as unknown as Record<string, unknown>)[key];
 			}
 		}
 

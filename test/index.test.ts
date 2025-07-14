@@ -324,28 +324,13 @@ describe("Logger", () => {
 			const logger = createLogger({
 				platform: "web",
 				timestampEnabled: false,
-				customStyles: {
-					web: {
-						debug: "color: #787878;",
-						info: "background: #3880ff; color: #ffffff; border-radius: 3px; padding: 0 5px; font-weight: bold;",
-						success:
-							"background: #10dc60; color: #ffffff; border-radius: 3px; padding: 0 5px",
-						warn: "background: #ffce00; color: #ffffff; border-radius: 3px; padding: 0 5px",
-						error:
-							"background: #f04141; color: #ffffff; border-radius: 3px; padding: 0 5px",
-						time: "color: #ffce00",
-						title: "font-size: 1.5rem",
-						group: "color: #3880ff; font-weight: bold;",
-						groupCollapsed: "color: #3880ff;",
-					},
-				},
 			});
 
 			logger.info("test message");
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
 				"%ctest message",
-				"background: #3880ff; color: #ffffff; border-radius: 3px; padding: 0 5px; font-weight: bold;",
+				"color: #0066cc; font-weight: 500;",
 			);
 		});
 
