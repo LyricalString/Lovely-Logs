@@ -1,16 +1,16 @@
 /// <reference types="bun-types" />
 
 import {
-	describe,
-	test,
-	expect,
-	beforeEach,
 	afterEach,
-	mock,
+	beforeEach,
+	describe,
+	expect,
 	it,
+	mock,
+	test,
 } from "bun:test";
-import { createLogger, LogLevels, type Logger, logger } from "../src/index";
 import { inspect } from "node:util";
+import { LogLevels, type Logger, createLogger, logger } from "../src/index";
 
 describe("Logger", () => {
 	let testLogger: Logger;
@@ -390,8 +390,8 @@ describe("Logger", () => {
 
 			const lastCall = consoleLogSpy.mock.calls[0];
 			const output = stripAnsi(lastCall[0]);
-			expect(output).toContain("name: 'test'");
-			expect(output).toContain("value: 42");
+			expect(output).toContain('"name": "test"');
+			expect(output).toContain('"value": 42');
 		});
 
 		it("should handle multiple arguments of different types", () => {
@@ -406,7 +406,7 @@ describe("Logger", () => {
 			const lastCall = consoleLogSpy.mock.calls[0];
 			const output = stripAnsi(lastCall[0]);
 			expect(output).toContain("test message");
-			expect(output).toContain("id: 1");
+			expect(output).toContain('"id": 1');
 			expect(output).toContain("42");
 		});
 
@@ -419,13 +419,10 @@ describe("Logger", () => {
 			logger.info(testArray);
 
 			const lastCall = consoleLogSpy.mock.calls[0];
-			expect(stripAnsi(lastCall[0])).toMatch(
-				new RegExp(
-					inspect(testArray, { colors: false })
-						.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-						.replace(/\s+/g, "\\s+"),
-				),
-			);
+			const output = stripAnsi(lastCall[0]);
+			expect(output).toContain("1");
+			expect(output).toContain('"two"');
+			expect(output).toContain('"three": 3');
 		});
 	});
 

@@ -1,5 +1,38 @@
 /// <reference types="node" />
-import { inspect } from "node:util";
+
+// Cross-platform object inspection
+const inspectObject = (obj: unknown): string => {
+	if (typeof obj === "object" && obj !== null) {
+		try {
+			// Try simple JSON stringify first
+			return JSON.stringify(obj, null, 2);
+		} catch {
+			// If that fails (circular refs, etc), use a safe replacer
+			try {
+				return JSON.stringify(
+					obj,
+					(_, value) => {
+						// Handle functions
+						if (typeof value === "function") {
+							return `[Function: ${value.name || "anonymous"}]`;
+						}
+						// Handle undefined (JSON.stringify normally omits these)
+						if (value === undefined) {
+							return "[undefined]";
+						}
+						// Let JSON.stringify handle circular references with its built-in error
+						return value;
+					},
+					2,
+				);
+			} catch {
+				// If all else fails, convert to string
+				return String(obj);
+			}
+		}
+	}
+	return String(obj);
+};
 
 export const LogLevels = {
 	DEBUG: "debug",
@@ -151,7 +184,7 @@ class Logger {
 					return ""; // Skip error objects as they'll be handled separately
 				}
 				if (typeof msg === "object") {
-					return inspect(msg, { colors: true, depth: null });
+					return inspectObject(msg);
 				}
 				return String(msg);
 			})
