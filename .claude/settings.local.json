@@ -7,7 +7,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(bun scripts/pre-publish.ts:*)"
+      "Bash(bun scripts/pre-publish.ts:*)",
+      "Bash(echo)",
+      "Bash(npm version:*)"
     ],
     "deny": []
   }
