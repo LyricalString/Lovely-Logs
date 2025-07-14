@@ -10,7 +10,7 @@ import {
 	test,
 } from "bun:test";
 import { inspect } from "node:util";
-import { LogLevels, type Logger, createLogger, logger } from "../src/index";
+import { LogLevels, type Logger, createLogger, logger, Logger as LoggerClass } from "../src/index";
 
 describe("Logger", () => {
 	let testLogger: Logger;
@@ -477,6 +477,328 @@ describe("Logger", () => {
 
 			const lastCall = consoleLogSpy.mock.calls[0];
 			expect(lastCall[0]).toBe(" [CUSTOM_INFO] test message");
+		});
+	});
+
+	describe("ECS Platform Detection", () => {
+		let originalECSMetadata: string | undefined;
+		let originalECSMetadataV4: string | undefined;
+		let originalAWSExecutionEnv: string | undefined;
+
+		beforeEach(() => {
+			originalECSMetadata = process.env.ECS_CONTAINER_METADATA_URI;
+			originalECSMetadataV4 = process.env.ECS_CONTAINER_METADATA_URI_V4;
+			originalAWSExecutionEnv = process.env.AWS_EXECUTION_ENV;
+		});
+
+		afterEach(() => {
+			process.env.ECS_CONTAINER_METADATA_URI = originalECSMetadata;
+			process.env.ECS_CONTAINER_METADATA_URI_V4 = originalECSMetadataV4;
+			process.env.AWS_EXECUTION_ENV = originalAWSExecutionEnv;
+		});
+
+		test("should detect ECS platform from metadata URI", () => {
+			process.env.ECS_CONTAINER_METADATA_URI = "http://169.254.170.2/v3/containers/xyz";
+			LoggerClass.resetInstance();
+			
+			const logger = createLogger();
+			logger.info("test message");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			// ECS should output structured JSON
+			expect(() => JSON.parse(lastCall[0])).not.toThrow();
+			const parsed = JSON.parse(lastCall[0]);
+			expect(parsed.level).toBe("INFO");
+			expect(parsed.message).toBe("test message");
+			expect(parsed.timestamp).toBeDefined();
+		});
+
+		test("should detect ECS platform from metadata URI V4", () => {
+			process.env.ECS_CONTAINER_METADATA_URI_V4 = "http://169.254.170.2/v4/containers/xyz";
+			LoggerClass.resetInstance();
+			
+			const logger = createLogger();
+			logger.info("test message");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			expect(() => JSON.parse(lastCall[0])).not.toThrow();
+		});
+
+		test("should detect ECS from AWS_EXECUTION_ENV", () => {
+			process.env.AWS_EXECUTION_ENV = "AWS_ECS_FARGATE";
+			LoggerClass.resetInstance();
+			
+			const logger = createLogger();
+			logger.info("test message");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			expect(() => JSON.parse(lastCall[0])).not.toThrow();
+		});
+	});
+
+	describe("Structured Logging", () => {
+		test("should output structured JSON when structured option is enabled", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ 
+				structured: true,
+				serviceName: "test-service",
+				correlationId: "req-123"
+			});
+
+			logger.info("test message", { userId: "12345" });
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.timestamp).toBeDefined();
+			expect(parsed.level).toBe("INFO");
+			expect(parsed.message).toContain("test message");
+			expect(parsed.service).toBe("test-service");
+			expect(parsed.correlationId).toBe("req-123");
+		});
+
+		test("should handle errors in structured logging", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ structured: true });
+
+			const error = new Error("Test error");
+			(error as any).statusCode = 500;
+			logger.error("Request failed", error);
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.level).toBe("ERROR");
+			expect(parsed.message).toBe("Request failed");
+			expect(parsed.errors).toHaveLength(1);
+			expect(parsed.errors[0].name).toBe("Error");
+			expect(parsed.errors[0].message).toBe("Test error");
+			expect(parsed.errors[0].statusCode).toBe(500);
+			expect(parsed.errors[0].stack).toBeDefined();
+		});
+
+		test("should include context in structured logs", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ 
+				structured: true,
+				context: { environment: "test", version: "1.0.0" }
+			});
+
+			logger.info("test message");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.environment).toBe("test");
+			expect(parsed.version).toBe("1.0.0");
+		});
+	});
+
+	describe("Context Management", () => {
+		test("should set and include context in logs", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ structured: true });
+
+			logger.setContext({ service: "api", version: "1.0.0" });
+			logger.info("test message");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.service).toBe("api");
+			expect(parsed.version).toBe("1.0.0");
+		});
+
+		test("should add individual context fields", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ structured: true });
+
+			logger.addContext("userId", "12345");
+			logger.addContext("sessionId", "abc-def");
+			logger.info("test message");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.userId).toBe("12345");
+			expect(parsed.sessionId).toBe("abc-def");
+		});
+
+		test("should remove context fields", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ structured: true });
+
+			logger.setContext({ service: "api", version: "1.0.0", userId: "12345" });
+			logger.removeContext("userId");
+			logger.info("test message");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.service).toBe("api");
+			expect(parsed.version).toBe("1.0.0");
+			expect(parsed.userId).toBeUndefined();
+		});
+
+		test("should clear all context", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ structured: true });
+
+			logger.setContext({ service: "api", version: "1.0.0" });
+			logger.clearContext();
+			logger.info("test message");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.service).toBeUndefined();
+			expect(parsed.version).toBeUndefined();
+		});
+
+		test("should get current context", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger();
+
+			logger.setContext({ service: "api", version: "1.0.0" });
+			logger.addContext("userId", "12345");
+			
+			const context = logger.getContext();
+			expect(context.service).toBe("api");
+			expect(context.version).toBe("1.0.0");
+			expect(context.userId).toBe("12345");
+		});
+	});
+
+	describe("Correlation ID Management", () => {
+		test("should set and get correlation ID", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger();
+
+			logger.setCorrelationId("req-abc-123");
+			expect(logger.getCorrelationId()).toBe("req-abc-123");
+		});
+
+		test("should include correlation ID in structured logs", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ structured: true });
+
+			logger.setCorrelationId("req-abc-123");
+			logger.info("test message");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.correlationId).toBe("req-abc-123");
+		});
+	});
+
+	describe("Performance Timing", () => {
+		test("should start and end timers", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ timestampEnabled: false });
+
+			logger.time("test-timer");
+			logger.timeEnd("test-timer");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const output = stripAnsi(lastCall[0]);
+			expect(output).toMatch(/ℹ\s+test-timer: \d+ms/);
+		});
+
+		test("should warn when timer doesn't exist", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ timestampEnabled: false });
+
+			logger.timeEnd("non-existent-timer");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const output = stripAnsi(lastCall[0]);
+			expect(output).toMatch(/⚠\s+Timer 'non-existent-timer' does not exist/);
+		});
+
+		test("should log intermediate timing with timeLog", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ timestampEnabled: false });
+
+			logger.time("test-timer");
+			logger.timeLog("test-timer", "checkpoint");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const output = stripAnsi(lastCall[0]);
+			expect(output).toMatch(/ℹ\s+test-timer: \d+ms checkpoint/);
+		});
+
+		test("should warn on timeLog when timer doesn't exist", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ timestampEnabled: false });
+
+			logger.timeLog("non-existent-timer");
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const output = stripAnsi(lastCall[0]);
+			expect(output).toMatch(/⚠\s+Timer 'non-existent-timer' does not exist/);
+		});
+	});
+
+	describe("Enhanced Error Serialization", () => {
+		test("should serialize error with custom properties", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ structured: true });
+
+			const error = new Error("Custom error");
+			(error as any).statusCode = 500;
+			(error as any).requestId = "req-456";
+			(error as any).userId = "12345";
+			
+			logger.error("Request failed", error);
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.errors).toHaveLength(1);
+			const serializedError = parsed.errors[0];
+			expect(serializedError.name).toBe("Error");
+			expect(serializedError.message).toBe("Custom error");
+			expect(serializedError.statusCode).toBe(500);
+			expect(serializedError.requestId).toBe("req-456");
+			expect(serializedError.userId).toBe("12345");
+			expect(serializedError.stack).toBeDefined();
+		});
+
+		test("should handle multiple errors", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ structured: true });
+
+			const error1 = new Error("First error");
+			const error2 = new Error("Second error");
+			
+			logger.error("Multiple errors occurred", error1, error2);
+
+			const lastCall = consoleLogSpy.mock.calls[0];
+			const parsed = JSON.parse(lastCall[0]);
+			
+			expect(parsed.errors).toHaveLength(2);
+			expect(parsed.errors[0].message).toBe("First error");
+			expect(parsed.errors[1].message).toBe("Second error");
+		});
+	});
+
+	describe("Group Support in Structured Logging", () => {
+		test("should include group level in structured logs", () => {
+			LoggerClass.resetInstance();
+			const logger = createLogger({ structured: true });
+
+			logger.group("Test Group");
+			logger.info("message in group");
+			logger.groupEnd();
+
+			const calls = consoleLogSpy.mock.calls;
+			const groupLog = JSON.parse(calls[0][0]);
+			const messageLog = JSON.parse(calls[1][0]);
+			
+			expect(groupLog.level).toBe("GROUP");
+			expect(groupLog.message).toBe("Test Group");
+			expect(messageLog.group).toBe(1);
 		});
 	});
 });

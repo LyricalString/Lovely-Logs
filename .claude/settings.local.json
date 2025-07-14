@@ -9,7 +9,10 @@
       "Bash(git push:*)",
       "Bash(bun scripts/pre-publish.ts:*)",
       "Bash(echo)",
-      "Bash(npm version:*)"
+      "Bash(npm version:*)",
+      "Bash(npm publish:*)",
+      "Bash(bun:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

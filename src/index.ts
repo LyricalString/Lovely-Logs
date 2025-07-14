@@ -53,7 +53,7 @@ export const LogLevelPriority = {
 } as const;
 
 export type LogLevel = (typeof LogLevels)[keyof typeof LogLevels];
-export type Platform = "web" | "console" | "lambda";
+export type Platform = "web" | "console" | "lambda" | "ecs";
 
 export interface LoggerOptions {
 	platform?: Platform;
@@ -61,6 +61,10 @@ export interface LoggerOptions {
 	customStyles?: Partial<typeof defaultStyles>;
 	prefix?: string | Partial<Record<LogLevel, string>>;
 	minLogLevel?: LogLevel;
+	structured?: boolean; // Output structured JSON logs
+	serviceName?: string; // Service name for identification
+	correlationId?: string; // Request correlation ID
+	context?: Record<string, unknown>; // Persistent context metadata
 }
 
 const defaultStyles = {
@@ -99,6 +103,17 @@ const defaultStyles = {
 		group: "[GROUP]",
 		groupCollapsed: "[GROUP]",
 	},
+	ecs: {
+		debug: "DEBUG",
+		info: "INFO",
+		warn: "WARN",
+		error: "ERROR",
+		success: "INFO", // ECS doesn't have SUCCESS level, map to INFO
+		time: "INFO",
+		title: "INFO",
+		group: "INFO",
+		groupCollapsed: "INFO",
+	},
 };
 
 const detectPlatform = (): Platform => {
@@ -106,6 +121,14 @@ const detectPlatform = (): Platform => {
 		return "web";
 	}
 
+	// AWS ECS detection
+	if (process.env.ECS_CONTAINER_METADATA_URI || 
+		process.env.ECS_CONTAINER_METADATA_URI_V4 ||
+		process.env.AWS_EXECUTION_ENV?.includes('ECS')) {
+		return "ecs";
+	}
+
+	// AWS Lambda detection
 	if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
 		return "lambda";
 	}
@@ -123,12 +146,22 @@ class Logger {
 	private readonly styles: typeof defaultStyles;
 	private readonly startTime: number;
 	private readonly prefix: Partial<Record<LogLevel, string>>;
+	private readonly structured: boolean;
+	private readonly serviceName?: string;
 	private groupLevel = 0;
 	private minLogLevel: LogLevel;
+	private correlationId?: string;
+	private context: Record<string, unknown> = {};
+	private timers: Map<string, number> = new Map();
 
 	private constructor(options: LoggerOptions = {}) {
 		this.platform = options.platform ?? detectPlatform();
 		this.timeStampEnabled = options.timestampEnabled ?? true;
+		this.structured = options.structured ?? (this.platform === "ecs");
+		this.serviceName = options.serviceName;
+		this.correlationId = options.correlationId;
+		this.context = options.context ? { ...options.context } : {};
+		
 		this.styles = {
 			...defaultStyles,
 			...(options.customStyles || {}),
@@ -177,6 +210,63 @@ class Logger {
 		return seconds.toFixed(3);
 	}
 
+	private getISOTimestamp(): string {
+		return new Date().toISOString();
+	}
+
+	private serializeError(error: Error): Record<string, unknown> {
+		const serialized: Record<string, unknown> = {
+			name: error.name,
+			message: error.message,
+			stack: error.stack,
+		};
+
+		// Include any custom properties
+		for (const key of Object.getOwnPropertyNames(error)) {
+			if (!['name', 'message', 'stack'].includes(key)) {
+				serialized[key] = (error as any)[key];
+			}
+		}
+
+		return serialized;
+	}
+
+	private createStructuredLog(level: LogLevel, messages: unknown[]): Record<string, unknown> {
+		const timestamp = this.getISOTimestamp();
+		const errors: Error[] = [];
+		const nonErrorMessages: unknown[] = [];
+
+		// Separate errors from other messages
+		for (const msg of messages) {
+			if (msg instanceof Error) {
+				errors.push(msg);
+			} else {
+				nonErrorMessages.push(msg);
+			}
+		}
+
+		const logEntry: Record<string, unknown> = {
+			timestamp,
+			level: level.toUpperCase(),
+			message: nonErrorMessages.length > 0 ? this.formatMessages(...nonErrorMessages) : "",
+			...(this.serviceName && { service: this.serviceName }),
+			...(this.correlationId && { correlationId: this.correlationId }),
+			...this.context,
+		};
+
+		// Add errors as structured data
+		if (errors.length > 0) {
+			logEntry.errors = errors.map(error => this.serializeError(error));
+		}
+
+		// Add grouping information
+		if (this.groupLevel > 0) {
+			logEntry.group = this.groupLevel;
+		}
+
+		return logEntry;
+	}
+
 	private formatMessages(...messages: unknown[]): string {
 		return messages
 			.map((msg) => {
@@ -215,6 +305,13 @@ class Logger {
 
 	private log(level: LogLevel, ...messages: unknown[]): void {
 		if (!this.shouldLog(level)) {
+			return;
+		}
+
+		// Handle structured logging
+		if (this.structured || this.platform === "ecs") {
+			const structuredLog = this.createStructuredLog(level, messages);
+			console.log(JSON.stringify(structuredLog));
 			return;
 		}
 
@@ -373,6 +470,59 @@ class Logger {
 	public getMinLogLevel(): LogLevel {
 		return this.minLogLevel;
 	}
+
+	public setCorrelationId(correlationId: string): void {
+		this.correlationId = correlationId;
+	}
+
+	public getCorrelationId(): string | undefined {
+		return this.correlationId;
+	}
+
+	public setContext(context: Record<string, unknown>): void {
+		this.context = { ...context };
+	}
+
+	public addContext(key: string, value: unknown): void {
+		this.context[key] = value;
+	}
+
+	public removeContext(key: string): void {
+		delete this.context[key];
+	}
+
+	public getContext(): Record<string, unknown> {
+		return { ...this.context };
+	}
+
+	public clearContext(): void {
+		this.context = {};
+	}
+
+	public time(label: string): void {
+		this.timers.set(label, Date.now());
+	}
+
+	public timeEnd(label: string): void {
+		const startTime = this.timers.get(label);
+		if (startTime) {
+			const duration = Date.now() - startTime;
+			this.timers.delete(label);
+			this.info(`${label}: ${duration}ms`);
+		} else {
+			this.warn(`Timer '${label}' does not exist`);
+		}
+	}
+
+	public timeLog(label: string, ...messages: unknown[]): void {
+		const startTime = this.timers.get(label);
+		if (startTime) {
+			const duration = Date.now() - startTime;
+			this.info(`${label}: ${duration}ms`, ...messages);
+		} else {
+			this.warn(`Timer '${label}' does not exist`);
+		}
+	}
 }
 
 export const createLogger = (options?: LoggerOptions): Logger => {
@@ -386,4 +536,4 @@ export const logger = new Proxy({} as Logger, {
 	},
 });
 
-export type { Logger };
+export { Logger };
