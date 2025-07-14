@@ -69,15 +69,36 @@ export interface LoggerOptions {
 
 const defaultStyles = {
 	web: {
-		debug: "color: #888; font-style: italic;",
-		info: "color: #0066cc; font-weight: 500;",
-		success: "color: #28a745; font-weight: 500;",
-		warn: "color: #ffa500; font-weight: 500;",
-		error: "color: #dc3545; font-weight: bold;",
+		debug: {
+			badge: "background: #6c757d; color: white; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;",
+			message: "color: #888; font-style: italic;"
+		},
+		info: {
+			badge: "background: #0066cc; color: white; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;",
+			message: "color: white;"
+		},
+		success: {
+			badge: "background: #28a745; color: white; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;",
+			message: "color: white;"
+		},
+		warn: {
+			badge: "background: #ffa500; color: white; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;",
+			message: "color: white;"
+		},
+		error: {
+			badge: "background: #dc3545; color: white; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;",
+			message: "color: white; font-weight: 500;"
+		},
 		time: "color: #6c757d;",
 		title: "font-size: 1.5rem; font-weight: bold;",
-		group: "color: #0066cc; font-weight: bold;",
-		groupCollapsed: "color: #0066cc; font-weight: 500;",
+		group: {
+			badge: "background: #0066cc; color: white; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;",
+			message: "color: #0066cc; font-weight: bold;"
+		},
+		groupCollapsed: {
+			badge: "background: #0066cc; color: white; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;",
+			message: "color: #0066cc; font-weight: 500;"
+		},
 	},
 	console: {
 		debug: "\x1b[90m◯\x1b[0m",
@@ -319,19 +340,31 @@ class Logger {
 
 		switch (this.platform) {
 			case "web": {
-				// Web platform uses CSS styling
+				// Web platform uses badge + message styling
+				const webStyle = this.styles.web[level];
+				const levelBadge = `[${level.toUpperCase()}]`;
+				
 				if (level === "error" && messages.some((msg) => msg instanceof Error)) {
 					const nonErrorMessages = messages.filter(
 						(msg) => !(msg instanceof Error),
 					);
 					const errors = messages.filter((msg) => msg instanceof Error);
 
-					// Log non-error messages with styling
+					// Log non-error messages with badge + message styling
 					if (nonErrorMessages.length > 0) {
-						console.log(
-							`%c${indent}${prefix}${this.formatMessages(...nonErrorMessages)}`,
-							this.styles.web[level],
-						);
+						if (typeof webStyle === 'object' && 'badge' in webStyle) {
+							console.log(
+								`${indent}%c${levelBadge}%c ${prefix}${this.formatMessages(...nonErrorMessages)}`,
+								webStyle.badge,
+								webStyle.message
+							);
+						} else {
+							// Fallback for old style format
+							console.log(
+								`%c${indent}${prefix}${this.formatMessages(...nonErrorMessages)}`,
+								webStyle as string,
+							);
+						}
 					}
 
 					// Log errors with native formatting
@@ -339,10 +372,19 @@ class Logger {
 						console.error(error);
 					}
 				} else {
-					console.log(
-						`%c${indent}${prefix}${this.formatMessages(...messages)}`,
-						this.styles.web[level],
-					);
+					if (typeof webStyle === 'object' && 'badge' in webStyle) {
+						console.log(
+							`${indent}%c${levelBadge}%c ${prefix}${this.formatMessages(...messages)}`,
+							webStyle.badge,
+							webStyle.message
+						);
+					} else {
+						// Fallback for old style format
+						console.log(
+							`%c${indent}${prefix}${this.formatMessages(...messages)}`,
+							webStyle as string,
+						);
+					}
 				}
 				break;
 			}

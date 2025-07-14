@@ -329,8 +329,9 @@ describe("Logger", () => {
 			logger.info("test message");
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				"%ctest message",
-				"color: #0066cc; font-weight: 500;",
+				"%c[INFO]%c test message",
+				"background: #0066cc; color: white; padding: 1px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;",
+				"color: white;"
 			);
 		});
 
