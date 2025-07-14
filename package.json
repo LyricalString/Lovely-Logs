@@ -1,6 +1,6 @@
 {
 	"name": "lovely-logs",
-	"version": "2.6.0",
+	"version": "2.6.1",
 	"description": "Lovely console logs for website development on NodeJS. Supports colors, timestamps, and more.",
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
@@ -27,7 +27,9 @@
 	],
 	"author": "LyricalString",
 	"license": "MIT",
-	"files": ["build/**/*"],
+	"files": [
+		"build/**/*"
+	],
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/LyricalString/Lovely-Logs.git"
