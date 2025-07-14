@@ -4,7 +4,10 @@
       "Bash(npm run build:*)",
       "Bash(bun test:*)",
       "Bash(npm run check:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(bun scripts/pre-publish.ts:*)"
     ],
     "deny": []
   }
